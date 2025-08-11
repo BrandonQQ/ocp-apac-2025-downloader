@@ -1,0 +1,41 @@
+name: OCP APAC 2025 Slides Downloader
+on:
+  workflow_dispatch:
+    inputs:
+      prefer:
+        description: "Preferred source"
+        required: true
+        default: "dropbox"
+      track_filter:
+        description: "Optional: only tracks containing this keyword"
+        required: false
+      insecure:
+        description: "Use --insecure (corporate SSL)? true/false"
+        required: false
+        default: "false"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Download slides
+        run: |
+          python download_ocp_apac_2025_slides_v1_5.py \
+            --workers 8 \
+            --prefer "${{ github.event.inputs.prefer || 'dropbox' }}" \
+            ${{ github.event.inputs.track_filter && format('--track-filter "{0}"', github.event.inputs.track_filter) || '' }} \
+            ${{ github.event.inputs.insecure == 'true' && '--insecure' || '' }} \
+            --group-by track --verbose --save-html --filename-template "{index:02d} - {title}"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OCP_APAC_2025_Slides_Output
+          path: |
+            OCP_APAC_2025_Slides/**
+            OCP_APAC_2025_Slides.zip
+            manifest.csv
+            parsed_items.csv
